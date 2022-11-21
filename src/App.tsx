@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { LogIn } from './page/log-in/log-in'
+import WebSocketConnector from './web-socket-connector'
+
+const webSocketConnector = new WebSocketConnector()
 
 function App() {
 	const [nickname, setNickname] = useState(
@@ -10,13 +13,11 @@ function App() {
 		window.localStorage.setItem('nickname', nickname)
 	})
 
-	const webSocketRef = useRef<WebSocket | undefined>(undefined)
+	const webSocketConnectorRef = useRef(webSocketConnector)
 
 	if (nickname === '') {
 		return <LogIn setNickname={setNickname} />
 	}
-
-	webSocketRef.current = new WebSocket(`?nickname=${nickname}`)
 
 	return (
 		<div className='flex-1 p:2 sm:p-6 justify-between flex flex-col h-screen'>
