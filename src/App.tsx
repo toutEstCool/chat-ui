@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { LogIn } from './page/log-in/log-in'
 import WebSocketConnector from './web-socket-connector'
 
+type Client = {
+	connectionId: string
+	nickname: string
+}
+
 const webSocketConnector = new WebSocketConnector()
 
 function App() {
@@ -17,6 +22,26 @@ function App() {
 
 	if (nickname === '') {
 		return <LogIn setNickname={setNickname} />
+	}
+
+	const url = `wss://8fhov3ofhi.execute-api.us-east-1.amazonaws.com/dev?nickname=${nickname}`
+	const ws = webSocketConnectorRef.current.getConnection(url)
+
+	ws.onopen = () => {
+		ws.send(
+			JSON.stringify({
+				action: 'getClients',
+			})
+		)
+	}
+
+	ws.onmessage = e => {
+		const message = JSON.parse(e.data) as {
+			type: string
+			value: {
+				clients: Client[]
+			}
+		}
 	}
 
 	return (
