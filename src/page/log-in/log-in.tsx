@@ -35,7 +35,6 @@ export const LogIn = ({
 						) : (
 							''
 						)}
-						{/* Button */}
 						<MyButton
 							onClick={() =>
 								nicknameValue === ''
