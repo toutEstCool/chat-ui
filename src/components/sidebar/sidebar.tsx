@@ -1,42 +1,59 @@
-import { Client } from '../../App'
-
-export const SideBar = ({
+export default function Sidebar({
+	me,
 	clients,
+	setTarget,
 }: {
-	clients: Client[]
-	setTargetNickname: (nickname: string) => void
-}) => {
+	me: string
+	clients: string[]
+	setTarget: (target: string) => void
+}) {
 	return (
-		<div className='flex flex-col'>
-			<div className='flex justify-center mt-7 mb-5'>
-				<img
-					src='https://images.unsplash.com/photo-1549078642-b2ba4bda0cdb?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144'
-					alt=''
-					className='w-7 sm:w-6 h-7 sm:h-6 rounded-full mr-2'
-				/>
-				<span className='font-medium invisible md:visible w-0 md:w-auto'>
-					Чат
-				</span>
-			</div>
-			{clients.map(client => (
-				<button onClick={() => setTargetNickname(client.nickname)}>
-					<div className='flex flex-col items-center md:items-start m-3'>
-						<div className='flex items-center mb-3'>
-							<img
-								src='https://images.unsplash.com/photo-1549078642-b2ba4bda0cdb?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144'
-								alt=''
-								className='w-8 sm:w-10 h-8 sm:h-10 rounded-full mr-1.5'
-							/>
-							<span className='text-sm leading-8 invisible md:visible w-0 md:w-auto'>
-								{client.nickname}
-							</span>
+		<>
+			<div className='flex-none border-r-2 border-gray-200 w-20 md:w-64'>
+				<div className='flex sm:items-center justify-between py-10 px-5'>
+					<div className='flex items-center space-x-2'>
+						<img
+							src={`avatar/nickname.avif`}
+							alt=''
+							className='w-8 rounded-full'
+						/>
+						<div className='text-2xl invisible md:visible'>
+							<span className='text-gray-700 mr-3 font-bold'>Чаты</span>
 						</div>
 					</div>
-				</button>
-			))}
-		</div>
+				</div>
+				<div className='flex flex-col px-2'>
+					<div className='flex flex-col'>
+						{clients.map((client, key) => (
+							<div key={key}>
+								<button
+									className='flex items-center p-3 bg-white rounded-xl'
+									onClick={() => setTarget(client)}
+								>
+									<img
+										src={`avatar/nickname2.avif`}
+										alt=''
+										className='w-4 sm:w-8 h-10 sm:h-8 rounded-full'
+									/>
+									<div className='flex items-center'>
+										<span className='mr-3 ml-2'>{client}</span>
+										<span className='text-green-500'>
+											<svg width='10' height='10'>
+												<circle
+													cx='5'
+													cy='5'
+													r='5'
+													fill='currentColor'
+												></circle>
+											</svg>
+										</span>
+									</div>
+								</button>
+							</div>
+						))}
+					</div>
+				</div>
+			</div>
+		</>
 	)
-}
-function setTargetNickname(nickname: string): void {
-	throw new Error('Function not implemented.')
 }

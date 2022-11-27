@@ -1,76 +1,129 @@
 import { useEffect, useRef, useState } from 'react'
-import { DialogBox } from './components/dialog-box/dialog-box'
-import { SideBar } from './components/sidebar/sidebar'
-import { LogIn } from './page/log-in/log-in'
-import WebSocketConnector from './web-socket-connector'
+import Conversation from './components/conversation/conversation'
+import { MessageItem } from './components/messageItem'
+import Sidebar from './components/sidebar/sidebar'
+import Welcome from './components/welcome/welcome'
+import { WebSocketConnector } from './web-socket-connector'
 
-export type Client = {
-	connectionId: string
-	nickname: string
-}
-
-const webSocketConnector = new WebSocketConnector()
+const WS_URL = 'wss://8fhov3ofhi.execute-api.us-east-1.amazonaws.com/dev'
+const connector = new WebSocketConnector()
 
 function App() {
-	const [nickname, setNickname] = useState(
+	const [nickname, setNickname] = useState<string>(
 		window.localStorage.getItem('nickname') || ''
 	)
+	const [clients, setClients] = useState<string[]>([])
+	const [target, setTarget] = useState<string>(
+		window.localStorage.getItem('lastTarget') || ''
+	)
+	const [messages, setMessages] = useState<MessageItem[]>([])
+	const webSocket = useRef(connector)
 
-	const [clients, setClients] = useState<Client[]>([])
-	const [targetNicknameValue, setTargetNicknameValue] = useState('')
-
-	useEffect(() => {
-		window.localStorage.setItem('nickname', nickname)
-	})
-
-	const webSocketConnectorRef = useRef(webSocketConnector)
-
-	if (nickname === '') {
-		return <LogIn setNickname={setNickname} />
-	}
-
-	const url = `wss://8fhov3ofhi.execute-api.us-east-1.amazonaws.com/dev?nickname=${nickname}`
-	const ws = webSocketConnectorRef.current.getConnection(url)
-
-	ws.onopen = () => {
-		ws.send(
-			JSON.stringify({
-				action: 'getClients',
-			})
-		)
-	}
-
-	ws.onmessage = e => {
-		const message = JSON.parse(e.data) as {
-			type: string
-			value: unknown
-		}
-
-		console.log(message)
-
-		if (message.type === 'clients') {
-			setClients((message.value as { clients: Client[] }).clients)
-		}
-	}
-
-	const setTargetNickname = (nickname: string) => {
-		ws.send(
+	const loadMessages = (target: string) => {
+		webSocket.current.getConnection(url).send(
 			JSON.stringify({
 				action: 'getMessages',
-				targetNickname: nickname,
+				targetNickname: target,
 				limit: 1000,
 			})
 		)
-		setTargetNicknameValue(nickname)
+	}
+
+	const setNewTarget = (target: string) => {
+		setTarget(target)
+		setMessages([])
+		loadMessages(target)
+	}
+
+	useEffect(() => {
+		window.localStorage.setItem('nickname', nickname)
+		window.localStorage.setItem('lastTarget', target)
+	})
+
+	if (nickname === '') {
+		return (
+			<Welcome
+				setNickname={nickname => {
+					setNickname(nickname)
+					if (target === '') {
+						setTarget(nickname)
+					}
+				}}
+			/>
+		)
+	}
+
+	const url = `${WS_URL}?nickname=${nickname}`
+	const ws = webSocket.current.getConnection(url)
+
+	ws.onmessage = event => {
+		const msg = JSON.parse(event.data) as {
+			type: string
+			value: unknown
+		}
+		console.log(msg)
+		if (msg.type === 'clients') {
+			setClients(
+				(msg.value as { nickname: string }[]).map(c => c.nickname).sort()
+			)
+		}
+
+		if (msg.type === 'messages') {
+			const body = msg.value as {
+				messages: MessageItem[]
+				lastEvaluatedKey: unknown
+			}
+
+			setMessages([...body.messages.reverse(), ...messages])
+		}
+
+		if (msg.type === 'message') {
+			const item = msg.value as MessageItem
+			if (item.sender === nickname || item.sender !== target) {
+				return
+			}
+			setMessages([...messages, item])
+		}
+	}
+
+	ws.onopen = () => {
+		webSocket.current
+			.getConnection(url)
+			.send(JSON.stringify({ action: 'getClients' }))
+
+		loadMessages(target)
+	}
+
+	const sendMessage = (value: string) => {
+		webSocket.current.getConnection(url).send(
+			JSON.stringify({
+				action: 'sendMessage',
+				recipientNickname: target,
+				message: value,
+			})
+		)
+		setMessages([
+			...messages,
+			{
+				message: value,
+				sender: nickname,
+			},
+		])
 	}
 
 	return (
 		<div className='flex'>
-			<div className='flex-none w-20 md:w-40 border-r-2'>
-				<SideBar clients={clients} setTargetNickname={setTargetNickname} />
-			</div>
+			<Sidebar
+				me={nickname}
+				clients={clients}
+				setTarget={target => setNewTarget(target)}
+			/>
 			<div className='flex-auto'>
-				<DialogBox />
+				<Conversation
+					target={target}
+					messages={messages}
+					sendMessage={sendMessage}
+				/>
 			</div>
 		</div>
 	)
