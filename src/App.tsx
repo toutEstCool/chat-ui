@@ -4,7 +4,7 @@ import { SideBar } from './components/sidebar/sidebar'
 import { LogIn } from './page/log-in/log-in'
 import WebSocketConnector from './web-socket-connector'
 
-type Client = {
+export type Client = {
 	connectionId: string
 	nickname: string
 }
@@ -15,6 +15,9 @@ function App() {
 	const [nickname, setNickname] = useState(
 		window.localStorage.getItem('nickname') || ''
 	)
+
+	const [clients, setClients] = useState<Client[]>([])
+	const [targetNicknameValue, setTargetNicknameValue] = useState('')
 
 	useEffect(() => {
 		window.localStorage.setItem('nickname', nickname)
@@ -40,16 +43,31 @@ function App() {
 	ws.onmessage = e => {
 		const message = JSON.parse(e.data) as {
 			type: string
-			value: {
-				clients: Client[]
-			}
+			value: unknown
 		}
+
+		console.log(message)
+
+		if (message.type === 'clients') {
+			setClients((message.value as { clients: Client[] }).clients)
+		}
+	}
+
+	const setTargetNickname = (nickname: string) => {
+		ws.send(
+			JSON.stringify({
+				action: 'getMessages',
+				targetNickname: nickname,
+				limit: 1000,
+			})
+		)
+		setTargetNicknameValue(nickname)
 	}
 
 	return (
 		<div className='flex'>
-			<div className='flex-none w-16 md:w-20 border-r-2'>
-				<SideBar />
+			<div className='flex-none w-20 md:w-40 border-r-2'>
+				<SideBar clients={clients} setTargetNickname={setTargetNickname} />
 			</div>
 			<div className='flex-auto'>
 				<DialogBox />
